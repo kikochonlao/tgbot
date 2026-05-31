@@ -1,0 +1,17 @@
+services:
+  - type: worker
+    name: tgbot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DAILY_READ_LIMIT
+        value: "50"
+      - key: COMMENT_INTERVAL_MIN
+        value: "5"
+      - key: ADMIN_CHAT_ID
+        sync: false
