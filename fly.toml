@@ -2,7 +2,7 @@ app = "tgbot"
 primary_region = "ams"
 
 [build]
-  builder = "paketobuildpacks/builder:base"
+  builder = "heroku/buildpacks:20"
 
 [env]
   PYTHONUNBUFFERED = "1"
