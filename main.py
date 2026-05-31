@@ -4,6 +4,7 @@ import os
 import csv
 from datetime import datetime, timezone
 
+from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -19,6 +20,21 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+async def health_check(request: web.Request) -> web.Response:
+    return web.Response(text="OK")
+
+
+async def run_http_server() -> None:
+    app = web.Application()
+    app.router.add_get("/", health_check)
+    app.router.add_get("/health", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host="0.0.0.0", port=8080)
+    await site.start()
+    logger.info("Health check server on :8080")
 
 
 async def auto_import_accounts(db: Database) -> None:
@@ -98,13 +114,15 @@ async def main() -> None:
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
 
+    asyncio.create_task(run_http_server())
+
     if ADMIN_CHAT_ID:
         asyncio.create_task(daily_report(bot, db))
 
     dp = Dispatcher()
     dp.include_router(router)
 
-    logger.info("Бот запущен (multi-account, PostgreSQL)!")
+    logger.info("Бот запущен! Напиши /start в Telegram.")
     print("Бот запущен! Напиши /start в Telegram.")
 
     try:
