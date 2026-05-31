@@ -88,14 +88,12 @@ async def main() -> None:
         print("Ошибка: BOT_TOKEN не указан в .env")
         return
 
-    if not DATABASE_URL:
-        logger.error("DATABASE_URL не указан!")
-        print("Ошибка: DATABASE_URL не указан")
-        return
-
     db = Database(dsn=DATABASE_URL)
     await db.connect()
-    logger.info("Database connected (PostgreSQL)")
+    if DATABASE_URL:
+        logger.info("Database connected (PostgreSQL)")
+    else:
+        logger.info("Database connected (SQLite)")
 
     await auto_import_accounts(db)
 
@@ -122,7 +120,7 @@ async def main() -> None:
     dp = Dispatcher()
     dp.include_router(router)
 
-    logger.info("Бот запущен! Напиши /start в Telegram.")
+    logger.info("Бот запущен!")
     print("Бот запущен! Напиши /start в Telegram.")
 
     try:
