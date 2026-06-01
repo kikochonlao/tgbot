@@ -98,12 +98,12 @@ async def main() -> None:
     await auto_import_accounts(db)
 
     proxy_manager = ProxyManager(db)
-    await proxy_manager.start()
-    logger.info("Proxy manager started")
+    proxy_task = asyncio.create_task(proxy_manager.start())
+    logger.info("Proxy collection started in background")
 
     account_manager = AccountManager(db, proxy_manager)
-    await account_manager.start()
-    logger.info("Account manager started")
+    account_task = asyncio.create_task(account_manager.start())
+    logger.info("Account manager started in background")
 
     init_services(db, account_manager, proxy_manager)
 
@@ -126,6 +126,8 @@ async def main() -> None:
     try:
         await dp.start_polling(bot)
     finally:
+        proxy_task.cancel()
+        account_task.cancel()
         await account_manager.stop()
         await db.close()
         await bot.session.close()

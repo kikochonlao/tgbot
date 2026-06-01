@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+import os
 import aiohttp
 import random
 from typing import Any
@@ -19,7 +21,9 @@ PROXY_SOURCES = [
 TEST_URL = "https://mangabuff.ru"
 TEST_TIMEOUT = 10
 MIN_PROXY_POOL = 10
-HEALTH_CHECK_INTERVAL = 60
+HEALTH_CHECK_INTERVAL = 300
+
+PROXY_CACHE_FILE = os.path.join(os.path.dirname(__file__), "..", "proxies", "alive.json")
 
 
 class ProxyManager:
@@ -31,8 +35,37 @@ class ProxyManager:
         self._collecting = False
 
     async def start(self) -> None:
+        loaded = self._load_cache()
+        if loaded:
+            logger.info(f"Загружено {len(loaded)} прокси из файла, проверка не нужна")
+            async with self._lock:
+                self._alive_cache = loaded
+                for url in loaded:
+                    await self._queue.put(url)
+        else:
+            logger.info("Файл прокси пуст, собираю и проверяю...")
+            await self._collect_and_fill()
+            self._save_cache()
         asyncio.create_task(self._health_loop())
-        await self._collect_and_fill()
+
+    def _load_cache(self) -> list[str]:
+        try:
+            if os.path.exists(PROXY_CACHE_FILE):
+                with open(PROXY_CACHE_FILE) as f:
+                    data = json.load(f)
+                if isinstance(data, list) and len(data) >= MIN_PROXY_POOL:
+                    return data
+        except Exception as e:
+            logger.warning(f"Ошибка загрузки кэша прокси: {e}")
+        return []
+
+    def _save_cache(self) -> None:
+        try:
+            with open(PROXY_CACHE_FILE, "w") as f:
+                json.dump(self._alive_cache, f, indent=2)
+            logger.info(f"Сохранено {len(self._alive_cache)} живых прокси в {PROXY_CACHE_FILE}")
+        except Exception as e:
+            logger.warning(f"Ошибка сохранения кэша прокси: {e}")
 
     async def get_proxy(self) -> str | None:
         if not self._queue.empty():
@@ -154,9 +187,9 @@ class ProxyManager:
         while True:
             await asyncio.sleep(HEALTH_CHECK_INTERVAL)
             try:
-                await self._collect_and_fill()
                 if self._queue.qsize() < MIN_PROXY_POOL:
-                    await self._fill_queue()
+                    await self._collect_and_fill()
+                    self._save_cache()
                 await self.db.clean_dead_proxies()
             except Exception as e:
                 logger.error(f"Health check error: {e}")
