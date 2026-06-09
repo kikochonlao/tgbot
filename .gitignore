@@ -1,0 +1,36 @@
+__pycache__/
+*.pyc
+.env
+data/
+*.db
+playwright_report/
+
+# Logs
+*.log
+*.txt
+run_log*
+bot_output.log
+
+# Screenshots & debug artifacts
+*.png
+*.html
+login_page*
+after_login*
+login_result*
+
+# Excel exports
+*.xlsx
+
+# Debug scripts
+add_filter.py
+analyze_site.py
+check_comments.py
+check_quiz.py
+debug_fetch.py
+debug_login*.py
+import_accounts.py
+inspect_*.py
+market_excel_async.py
+test_*.py
+verify_excel.py
+start.bat
